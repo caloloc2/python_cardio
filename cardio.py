@@ -1,6 +1,8 @@
 from Tkinter import *
+from datetime import datetime
 import Tkinter as tk
 import time, csv, serial
+
 
 def envio_serial(dato):
     global puerto, mensaje
@@ -29,8 +31,8 @@ def envio_serial(dato):
 def procesar_csv():
     global boton_inicio, amplitud, tiempo, mensaje
     
-    ref_amp = amplitud.get()
-    ref_tmp = tiempo.get()
+    ref_amp = float(amplitud.get())
+    ref_tmp = float(tiempo.get())
 
     if ((ref_amp!="") and (ref_tmp!="")):
         mensaje.config(text=" ")
@@ -38,16 +40,41 @@ def procesar_csv():
         # boton_inicio.config(state=DISABLED) 
         with open('convulsion2.csv') as csvfile:
             reader = csv.DictReader(csvfile)
-            for row in reader:                
-                #if (i==6):
-                # print(row)
-                # print(row[' headset type:INSIGHT']) # EEG.AF3
-                # print(row[' headset serial:A1D20009']) # EEG.T7
-                # print(row[' headset firmware:930']) # EEG.Pz
-                # print(row[' subject name:rbri19']) # EEG.T8
-                # print(row[' channels:87']) # EEG.AF4
-                print ""
-            envio_serial('a')
+            convulsion = False 
+
+            aux = 0
+            for row in reader:    
+                try:
+                    timestamp = float(row['title:12']) # TimeStamp
+                    tiempo = datetime.fromtimestamp(timestamp)
+                    minuto = tiempo.minute
+                    segundo = tiempo.second
+                    segundo_aux = 0
+
+                    af3 = float(row[' headset type:INSIGHT']) # EEG.AF3
+                    t7 = float(row[' headset serial:A1D20009']) # EEG.T7
+                    pz = float(row[' headset firmware:930']) # EEG.Pz
+                    t8 = float(row[' subject name:rbri19']) # EEG.T8
+                    af4 = float(row[' channels:87']) # EEG.AF4
+                    
+                    # si alguno de los valores obtenidos supera al limite establecido en la ventana (amplitud)
+                    if ((af3>ref_amp) or (t7>ref_amp) or (pz>ref_amp) or (t8>ref_amp) or (af4>ref_amp)):
+                        # y si ademas, el tiempo es igual o supera al establecido (tiempo -> en segundos)
+                        if (segundo_aux!=segundo):
+                            segundo_aux = segundo
+                            aux += 1
+                except:
+                    print("No se pudo convertir la variable tiempo")
+            
+            if (aux>=ref_tmp):
+                convulsion = True
+            
+            if (convulsion):
+                print ('El paciente esta convulsionando')
+                envio_serial('a')
+            else:
+                print ('El paciente no esta convulsionando')
+                envio_serial('b')
     else:        
         mensaje.config(text="Debe ingresar los dos valores")
         mensaje.config(fg="red")
@@ -78,7 +105,7 @@ Label(raiz, text="Referencia 1 (amplitud)").pack()
 amplitud = Entry(raiz, justify="right", state="normal")
 amplitud.pack()
 
-Label(raiz, text="Referencia 2 (tiempo)").pack()
+Label(raiz, text="Referencia 2 (tiempo [seg])").pack()
 tiempo = Entry(raiz, justify="right", state="normal")
 tiempo.pack()
 

@@ -1,4 +1,3 @@
-int encendido = 1;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -10,9 +9,10 @@ void loop() {
   if (Serial.available()>0){
     int data = Serial.read();
     Serial.println(data);
-    if (data==97){
-      digitalWrite(13, encendido);
-      encendido = abs(encendido -1);
+    if (data==97){ // a
+      digitalWrite(13, HIGH);
+    }else if (data==98){ // b
+      digitalWrite(13, LOW);
     }
   }
 }
